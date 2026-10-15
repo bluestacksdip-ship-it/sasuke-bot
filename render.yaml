@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: sasuke-bot
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node bot.js
+    envVars:
+      - key: MC_LOGIN_CMD
+        sync: false
+      - key: DISCORD_TOKEN
+        sync: false
+      - key: DISCORD_CHANNEL_ID
+        sync: false
+      - key: DISCORD_AUTHORIZED_USER_ID
+        sync: false
