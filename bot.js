@@ -589,9 +589,25 @@ async function handleDiscordMessage(message) {
 
 async function loginDiscord() {
   if (!discordClient) return;
+  // Length only — the token value itself is never logged. A real
+  // bot token is ~70 characters; a much shorter/longer value in
+  // the log means the wrong thing was pasted into the secret.
+  log(`Discord: attempting login (token length ${DISCORD_TOKEN.length})...`);
+  let settled = false;
+  const watchdog = setTimeout(() => {
+    if (!settled) {
+      log('Discord: login still pending after 45s — the connection to Discord may be blocked or very slow from this host.');
+    }
+  }, 45_000);
+  watchdog.unref?.();
   try {
     await discordClient.login(DISCORD_TOKEN); // token from Secret, never logged
+    settled = true;
+    clearTimeout(watchdog);
+    log('Discord: login accepted, waiting for the gateway ready event...');
   } catch (err) {
+    settled = true;
+    clearTimeout(watchdog);
     // Most likely an invalid token or a network problem.
     // Keep the Minecraft bot alive and try Discord again later.
     log('Discord: login failed, will retry:', err.message);
@@ -636,11 +652,26 @@ function startDiscord() {
   });
 
   discordClient.on('error', (err) => log('Discord client error:', err.message));
+  discordClient.on('shardError', (err, id) => log(`Discord: shard ${id} error:`, err.message));
   discordClient.on('warn', (info) => log('Discord warning:', String(info)));
   // discord.js reconnects shards automatically; we only observe.
   discordClient.on('shardDisconnect', (event, id) => log(`Discord: shard ${id} disconnected (code ${event.code}). Reconnect is automatic.`));
   discordClient.on('shardReconnecting', (id) => log(`Discord: shard ${id} reconnecting...`));
   discordClient.on('shardReady', (id) => { discordReady = true; log(`Discord: shard ${id} ready.`); });
+
+  // One-line connectivity probe, so a silent login hang can be
+  // told apart from a bad token: discord.com's gateway endpoint
+  // needs no auth and the result reveals nothing secret.
+  void (async () => {
+    try {
+      const res = await fetch('https://discord.com/api/v10/gateway', {
+        signal: AbortSignal.timeout(10_000),
+      });
+      log(`Discord: API reachable (HTTP ${res.status}).`);
+    } catch (err) {
+      log('Discord: API NOT reachable from this host:', err.message);
+    }
+  })();
 
   void loginDiscord();
 }
