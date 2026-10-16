@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "mineflayer": "^4.39.0"
+  },
+  "description": "Havencraft AFK/greeting bot for SASUKE_440 with a Discord bridge (mineflayer + discord.js, offline mode, all secrets via environment variables)",
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT",
+  "main": "bot.js",
+  "name": "sasuke-bot",
+  "scripts": {
+    "start": "node bot.js",
+    "test": "node --test bot.test.js"
+  },
+  "type": "commonjs",
+  "version": "2.5.9"
+}
